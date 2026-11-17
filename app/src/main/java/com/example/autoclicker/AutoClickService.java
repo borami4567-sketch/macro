@@ -15,6 +15,9 @@ import android.view.accessibility.AccessibilityEvent;
 import android.widget.Toast;
 
 public class AutoClickService extends AccessibilityService {
+    public static boolean isServiceArmed = false;
+    public static AutoClickService instance = null;
+
     private boolean isClicking = false;
     private float targetX = -1f;
     private float targetY = -1f;
@@ -25,14 +28,24 @@ public class AutoClickService extends AccessibilityService {
     private final Runnable clickRunnable = new Runnable() {
         @Override
         public void run() {
-            if (!isClicking || targetX < 0 || targetY < 0) return;
+            if (!isClicking || !isServiceArmed || targetX < 0 || targetY < 0) return;
             performTap(targetX, targetY);
             handler.postDelayed(this, 1000);
         }
     };
 
     @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        instance = this;
+    }
+
+    @Override
     protected boolean onKeyEvent(KeyEvent event) {
+        if (!isServiceArmed) {
+            return super.onKeyEvent(event);
+        }
+
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN) {
                 if (!isClicking) {
@@ -45,6 +58,12 @@ public class AutoClickService extends AccessibilityService {
             }
         }
         return super.onKeyEvent(event);
+    }
+
+    public void forceStopAll() {
+        isClicking = false;
+        handler.removeCallbacks(clickRunnable);
+        removeOverlay();
     }
 
     private void showTargetOverlay() {
@@ -77,7 +96,9 @@ public class AutoClickService extends AccessibilityService {
 
     private void removeOverlay() {
         if (overlayView != null && windowManager != null) {
-            windowManager.removeView(overlayView);
+            try {
+                windowManager.removeView(overlayView);
+            } catch (Exception ignored) {}
             overlayView = null;
         }
     }
@@ -108,6 +129,7 @@ public class AutoClickService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
-        stopClicking();
+        forceStopAll();
+        instance = null;
     }
 }
