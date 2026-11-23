@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,9 +22,49 @@ public class MainActivity extends Activity {
         layout.setPadding(60, 100, 60, 60);
 
         TextView guide = new TextView(this);
-        guide.setText("1. 최초 1회 아래 두 권한을 허용해 주세요.\n2. 사용할 때만 [대기 모드 켜기]를 누르세요.\n3. 다 쓴 뒤 [대기 모드 끄기]를 누르면 음량 버튼이 원래대로 돌아옵니다.\n\n");
-        guide.setTextSize(16f);
+        guide.setText("1. 최초 1회 아래 두 권한을 허용해 주세요.\n2. 아래에서 사용할 매크로 모드를 선택하세요.\n3. [대기 모드 켜기]를 누른 뒤 볼륨 내리기로 시작, 볼륨 올리기로 중지합니다.\n\n");
+        guide.setTextSize(15f);
         layout.addView(guide);
+
+        // 모드 선택 라디오 그룹
+        TextView modeTitle = new TextView(this);
+        modeTitle.setText("📌 매크로 모드 선택:");
+        modeTitle.setTextSize(16f);
+        layout.addView(modeTitle);
+
+        RadioGroup radioGroup = new RadioGroup(this);
+
+        RadioButton rbMode1 = new RadioButton(this);
+        rbMode1.setId(1);
+        rbMode1.setText("모드 1: 1개 지점 / 초당 1회 클릭");
+        rbMode1.setTextSize(15f);
+
+        RadioButton rbMode2 = new RadioButton(this);
+        rbMode2.setId(2);
+        rbMode2.setText("모드 2: 2개 지점 번갈아 / 초당 20회 클릭");
+        rbMode2.setTextSize(15f);
+
+        radioGroup.addView(rbMode1);
+        radioGroup.addView(rbMode2);
+
+        if (AutoClickService.macroMode == 2) {
+            rbMode2.setChecked(true);
+        } else {
+            rbMode1.setChecked(true);
+        }
+
+        radioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            AutoClickService.macroMode = checkedId;
+            if (AutoClickService.instance != null) {
+                AutoClickService.instance.forceStopAll();
+            }
+            Toast.makeText(this, checkedId == 1 ? "모드 1 선택됨 (1지점 / 초당 1회)" : "모드 2 선택됨 (2지점 / 초당 20회)", Toast.LENGTH_SHORT).show();
+        });
+        layout.addView(radioGroup);
+
+        TextView spacer = new TextView(this);
+        spacer.setText("\n");
+        layout.addView(spacer);
 
         Button btnToggle = new Button(this);
         updateToggleText(btnToggle);
